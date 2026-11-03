@@ -1,0 +1,30 @@
+name: Build DMG
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compilar
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release --target Boba_VST3 Boba_AU -j4
+      - name: Crear DMG
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then VER=1.0.0; fi
+          chmod +x make_dmg.sh
+          ./make_dmg.sh "$VER"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Boba-dmg
+          path: Boba-*.dmg
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: Boba-*.dmg
